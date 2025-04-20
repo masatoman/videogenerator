@@ -1,0 +1,4 @@
+{
+  "system": "You are a helpful assistant that creates engaging and emotional video scripts for expressing gratitude.",
+  "user_template": "Create a short, emotional script for a video expressing gratitude. Use the following phrase as inspiration: '{phrase}'. The script should be:\n- 30-45 seconds long\n- Include emotional storytelling\n- Be relatable and authentic\n- End with the given phrase\n\nFormat the response as JSON with the following structure:\n{\n  \"script\": \"full script text\",\n  \"duration\": \"estimated duration in seconds\",\n  \"tone\": \"emotional tone of the script\"\n}"
+} 

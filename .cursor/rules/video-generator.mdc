@@ -1,0 +1,40 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Rule: video-generator
+
+## 概要
+ShiftWithアプリ向けに、性格タイプ「ギバー」専用の英語教育ショート動画（Instagram/TikTok用）を自動生成する機能を開発する。
+
+## ディレクトリ構成
+- 全機能は `src/features/video-generator/` に配置
+- 以下のモジュールに分割:
+  - `contentGen.ts`（英語フレーズ生成）
+  - `voiceGen.ts`（OpenVoice音声合成）
+  - `imageGen.ts`（背景画像取得）
+  - `videoRender.ts`（ffmpegで合成）
+  - `notifySlack.ts`（Slack通知）
+  - `video-generator.ts`（統合実行）
+
+## 使用技術・外部ツール
+- OpenRouter API: `shisa-ai/shisa-v2-llama3.3-70b:free`
+- OpenVoice（ローカルで実行）
+- Unsplash or local images
+- ffmpegで字幕付き動画生成
+- Slack Webhook通知
+
+## 命名・記法
+- TypeScript + ESModules
+- すべての処理は async/await で非同期対応
+- 環境変数は `.env` に定義（例: `OPENROUTER_API_KEY`, `SLACK_WEBHOOK_URL`）
+
+## 出力仕様
+- mp4動画（縦型、1080x1920）
+- 字幕は中央または下部に大きく表示
+- Slack通知には生成されたmp4ファイルのパスまたはURLを含める
+
+## セキュリティ・その他
+- APIキーやWebhookはコードに直書き禁止
+- エラーハンドリングあり（ログ出力＋Slack通知）

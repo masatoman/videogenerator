@@ -1,0 +1,22 @@
+{
+  "phrases": [
+    {
+      "id": 1,
+      "category": "gratitude",
+      "phrase": "Thank you for your kindness",
+      "context": "Expressing gratitude for help received"
+    },
+    {
+      "id": 2,
+      "category": "encouragement",
+      "phrase": "Your generosity makes a difference",
+      "context": "Acknowledging the impact of giving"
+    },
+    {
+      "id": 3,
+      "category": "appreciation",
+      "phrase": "Your support means the world to me",
+      "context": "Showing deep appreciation"
+    }
+  ]
+} 
