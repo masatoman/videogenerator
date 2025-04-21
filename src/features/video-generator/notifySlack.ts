@@ -1,109 +1,106 @@
 import axios from 'axios';
-import { NotificationPayload, SlackBlock, SlackMessage } from './types';
+import { NotificationError, ConfigurationError } from './errors';
+import { Logger, LogContext } from './utils/logger';
+import { SlackMessage, SlackBlock } from './types/index';
 
-export class SlackNotifier {
-  private webhookUrl: string;
+export class NotifySlack {
+  private readonly logger: Logger;
+  private readonly webhookUrl: string;
 
-  constructor() {
-    this.webhookUrl = process.env.SLACK_WEBHOOK_URL || '';
-    if (!this.webhookUrl) {
-      throw new Error('SLACK_WEBHOOK_URL is not set');
+  constructor(logger?: Logger) {
+    this.logger = logger || Logger.getInstance();
+
+    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    if (!webhookUrl) {
+      throw new ConfigurationError('SLACK_WEBHOOK_URL is not set');
     }
+
+    this.webhookUrl = webhookUrl;
   }
 
-  async notify(payload: NotificationPayload, webhookUrl: string): Promise<boolean> {
+  public async notifyVideoGenerated(videoPath: string, duration: number): Promise<void> {
+    if (!videoPath) {
+      throw new ConfigurationError('動画パスが指定されていません');
+    }
+
     try {
       const blocks: SlackBlock[] = [
         {
           type: 'header',
           text: {
             type: 'plain_text',
-            text: payload.status === 'success' ? '🎥 新しい動画が生成されました' : '⚠️ エラーが発生しました',
-            emoji: true
+            text: '🎥 動画の生成が完了しました'
           }
         },
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: payload.message
+            text: `*パス:* \`${videoPath}\`\n*長さ:* ${duration.toFixed(1)}秒`
           }
         }
       ];
 
-      if (payload.videoPath) {
-        blocks.push({
-          type: 'section',
+      const message: SlackMessage = { blocks };
+      
+      const response = await axios.post(this.webhookUrl, message);
+
+      if (response.status !== 200) {
+        throw new NotificationError('Slack通知の送信に失敗しました');
+      }
+
+      const logContext: LogContext = { videoPath, duration };
+      this.logger.info('Slack通知を送信しました', logContext);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      const logContext: LogContext = { errorMessage };
+      this.logger.error('Slack通知の送信に失敗しました', logContext);
+      throw new NotificationError(`Slack通知の送信に失敗しました: ${errorMessage}`);
+    }
+  }
+
+  public async notifyError(error: Error): Promise<void> {
+    try {
+      const blocks: SlackBlock[] = [
+        {
+          type: 'header',
           text: {
-            type: 'mrkdwn',
-            text: `*ファイルパス:*\n\`${payload.videoPath}\``
+            type: 'plain_text',
+            text: '❌ エラーが発生しました'
           }
-        });
-      }
-
-      if (payload.content) {
-        blocks.push({
+        },
+        {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*英語フレーズ:*\n${payload.content.englishPhrase}\n*日本語訳:*\n${payload.content.japaneseTranslation}`
+            text: `*エラー:* ${error.message}`
           }
-        });
-      }
+        }
+      ];
 
-      if (payload.imageAttribution) {
-        blocks.push({
-          type: 'context',
-          elements: [{
-            type: 'mrkdwn',
-            text: `*画像提供:* <${payload.imageAttribution.url}|${payload.imageAttribution.photographer}>`
-          }]
-        });
-      }
-
-      if (payload.error) {
+      // スタックトレースがある場合は追加
+      if (error.stack) {
         blocks.push({
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*エラー詳細:*\n\`\`\`${payload.error.message}\`\`\``
+            text: `*スタックトレース:*\n\`\`\`${error.stack}\`\`\``
           }
         });
       }
 
       const message: SlackMessage = { blocks };
-      await axios.post(webhookUrl, message);
-      return true;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
-      console.error('Slack通知エラー:', errorMessage);
-      throw new Error(`Slack通知の送信に失敗しました: ${errorMessage}`);
-    }
-  }
+      await axios.post(this.webhookUrl, message);
 
-  async notifyError(error: Error): Promise<void> {
-    try {
-      await axios.post(this.webhookUrl, {
-        blocks: [
-          {
-            type: 'header',
-            text: {
-              type: 'plain_text',
-              text: '⚠️ エラーが発生しました',
-              emoji: true
-            }
-          },
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `*エラー内容:*\n\`\`\`${error.message}\`\`\``
-            }
-          }
-        ]
-      });
+      const logContext: LogContext = { errorMessage: error.message };
+      this.logger.info('エラー通知を送信しました', logContext);
     } catch (notifyError) {
-      console.error('エラー通知の送信に失敗しました:', notifyError);
+      const errorMessage = notifyError instanceof Error ? notifyError.message : '不明なエラー';
+      const logContext: LogContext = {
+        originalErrorMessage: error.message,
+        notifyErrorMessage: errorMessage
+      };
+      this.logger.error('エラー通知の送信に失敗しました', logContext);
     }
   }
 } 

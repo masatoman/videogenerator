@@ -45,15 +45,14 @@ export interface NotificationPayload {
   error?: Error;
 }
 
-interface SlackBlockText {
+export interface SlackBlockText {
   type: 'plain_text' | 'mrkdwn';
   text: string;
-  emoji?: boolean;
 }
 
-interface SlackBlockElement {
-  type: 'mrkdwn';
-  text: string;
+export interface SlackBlockElement {
+  type: string;
+  text?: string;
 }
 
 export interface SlackBlock {
